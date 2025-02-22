@@ -1,0 +1,10 @@
+{
+    "ftps_server": "192.168.1.7",
+    "ftps_username": "your_username",
+    "ftps_password": "your_password",
+    "tv_remote_path": "/tv",
+    "movie_remote_path": "/movies",
+    "unsorted_remote_path": "unsorted",
+    "max_transfers": 2,
+    "ftps_fingerprint": ""
+}
