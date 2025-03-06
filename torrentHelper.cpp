@@ -327,7 +327,7 @@ bool testFTPSConnection(Config& config) {
             return false;
         } else if (config.ftps_fingerprint.empty()) {
             logInfo("First-time connection, storing fingerprint: " + new_fingerprint);
-            saveFingerprintToConfig(new_fingerprint);
+            saveFingerprintToConfig(new_fingerprint, "config.json");
         } else {
             logInfo("FTPS credentials are valid and fingerprint matched.");
         }
@@ -360,24 +360,6 @@ int main(int argc, char* argv[]) {
     }
     logDebug("Command-line arguments: " + argsStream.str());
 
-    if (argc < 2) {
-        logError("Usage: " + std::string(argv[0]) +
-                 " -category tv|movies|unsorted -path path/to/file_or_directory");
-        std::cout << "FAIL: Invalid usage." << std::endl;
-        std::cout << "Usage: " << argv[0] << " -category tv|movies|unsorted -path path/to/file_or_directory" << std::endl;
-        return 1;
-    }
-
-    Config config;
-    // Determine config.json path based on executable directory.
-    fs::path exeDir = exePath.parent_path();
-    fs::path configPath = exeDir / "config.json";
-    if (!loadConfig(config, configPath.string())) {
-        logError("Failed to load configuration. Exiting.");
-        std::cout << "FAIL: Failed to load configuration." << std::endl;
-        return 1;
-    }
-
     // Parse command-line options for -category and -path.
     std::string category;
     std::string pathArg;
@@ -390,16 +372,33 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Check if either -category or -path is empty.
     if (category.empty() || pathArg.empty()) {
-        logError("Usage: " + std::string(argv[0]) +
-                 " -category tv|movies|unsorted -path path/to/file_or_directory");
-        std::cout << "FAIL: Invalid usage." << std::endl;
+        logError("Invalid usage: -category and -path must be provided and non-empty.");
+        std::cout << "FAIL: -category and -path must be provided and non-empty." << std::endl;
         std::cout << "Usage: " << argv[0] << " -category tv|movies|unsorted -path path/to/file_or_directory" << std::endl;
+        return 1;
+    }
+
+    // Further validate the category value.
+    if (category != "tv" && category != "movies" && category != "unsorted") {
+        logError("Invalid category provided: " + category);
+        std::cout << "FAIL: Invalid category. Valid options are tv, movies, or unsorted." << std::endl;
         return 1;
     }
 
     logInfo("Category: " + category);
     logInfo("Path: " + pathArg);
+
+    Config config;
+    // Determine config.json path based on executable directory.
+    fs::path exeDir = exePath.parent_path();
+    fs::path configPath = exeDir / "config.json";
+    if (!loadConfig(config, configPath.string())) {
+        logError("Failed to load configuration. Exiting.");
+        std::cout << "FAIL: Failed to load configuration." << std::endl;
+        return 1;
+    }
 
     // Choose the correct remote path based on category.
     if(category == "movies") {
@@ -411,10 +410,6 @@ int main(int argc, char* argv[]) {
     } else if(category == "tv") {
         // Leave as is.
         logInfo("Remote folder set to tv folder: " + config.tv_remote_path);
-    } else {
-        logError("Invalid category provided: " + category);
-        std::cout << "FAIL: Invalid category." << std::endl;
-        return 1;
     }
 
     fs::path inputPath(pathArg);
@@ -433,3 +428,4 @@ int main(int argc, char* argv[]) {
     std::cout << resultMsg << std::endl;
     return overallSuccess ? 0 : 1;
 }
+
